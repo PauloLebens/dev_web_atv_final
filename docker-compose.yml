@@ -18,7 +18,7 @@ services:
       - /app/node_modules
 
   postgres:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     container_name: lava_jato_postgres
     ports:
       - "2222:5432"
@@ -31,3 +31,4 @@ services:
 
 volumes:
   postgres_data:
+    name: lava_jato_postgres_data
