@@ -1,0 +1,177 @@
+.navbar {
+  background: var(--cor-primaria);
+  color: #fff;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.navbar__conteudo {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.navbar__marca {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #fff;
+  text-decoration: none;
+  font-size: 1.25rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.navbar__menu {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.navbar__links {
+  list-style: none;
+  display: flex;
+  gap: 0.25rem;
+}
+
+.navbar__link {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: none;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+
+.navbar__link:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+/* Página atual (o NavLink adiciona a classe "active" sozinho) */
+.navbar__link.active {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+}
+
+.navbar__usuario {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.navbar__perfil {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  line-height: 1.2;
+}
+
+.navbar__perfil strong,
+.navbar__perfil small {
+  display: block;
+}
+
+.navbar__perfil small {
+  opacity: 0.75;
+  font-size: 0.75rem;
+}
+
+.navbar__botao {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: var(--cor-destaque);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.navbar__botao:hover {
+  filter: brightness(1.1);
+}
+
+.navbar__botao--secundario {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.navbar__botao--secundario:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.navbar__hamburguer {
+  display: none;
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  padding: 0.5rem;
+}
+
+.navbar__hamburguer .material-symbols-rounded {
+  font-size: 28px;
+}
+
+/* ===== Celular / tela estreita (RNF04) ===== */
+@media (max-width: 900px) {
+  .navbar__hamburguer {
+    display: block;
+  }
+
+  .navbar__menu {
+    display: none;
+    position: absolute;
+    top: 64px;
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    align-items: stretch;
+    background: var(--cor-primaria);
+    padding: 0.5rem 1rem 1rem;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  }
+
+  .navbar__menu--aberto {
+    display: flex;
+  }
+
+  .navbar__links {
+    flex-direction: column;
+  }
+
+  .navbar__link {
+    padding: 0.75rem;
+  }
+
+  .navbar__usuario {
+    flex-direction: column;
+    align-items: stretch;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    padding-top: 1rem;
+  }
+
+  .navbar__botao {
+    justify-content: center;
+    padding: 0.75rem;
+  }
+}
