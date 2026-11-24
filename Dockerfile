@@ -14,5 +14,6 @@ COPY . .
 
 EXPOSE 3000
 
-# Aplica as migrations pendentes e sobe o servidor
-CMD ["sh", "-c", "npx prisma migrate deploy && npx prisma generate && node server.js"]
+# Ao ligar: aplica as migrations pendentes, cria o admin/dados iniciais (se ainda não existirem)
+# e sobe o servidor
+CMD ["sh", "-c", "npx prisma migrate deploy && npx prisma generate && node prisma/seed.js && node server.js"]

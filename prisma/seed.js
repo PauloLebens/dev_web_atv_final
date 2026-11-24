@@ -1,7 +1,10 @@
 /**
- * Popula o banco com dados iniciais. Rodar com:
- *   docker compose exec app npx prisma db seed
- * Pode ser executado mais de uma vez sem duplicar dados.
+ * Popula o banco com dados iniciais.
+ * Roda AUTOMATICAMENTE toda vez que o contêiner da API liga (ver Dockerfile),
+ * então precisa ser seguro de repetir:
+ * - Admin: só é criado se ainda não existir um usuário com ADMIN_EMAIL.
+ * - Serviços de exemplo: só são criados se o catálogo estiver vazio.
+ * Também pode ser rodado à mão: docker compose exec app npx prisma db seed
  */
 require('dotenv').config();
 const bcrypt = require('bcrypt');
@@ -13,9 +16,15 @@ async function main() {
   // Administrador inicial (único jeito de criar o primeiro ADMIN)
   const { ADMIN_NOME, ADMIN_EMAIL, ADMIN_SENHA } = process.env;
   if (!ADMIN_EMAIL || !ADMIN_SENHA) {
-    throw new Error('Defina ADMIN_EMAIL e ADMIN_SENHA no .env para criar o administrador.');
+    console.warn('ADMIN_EMAIL/ADMIN_SENHA não definidos no .env: administrador não foi criado.');
+  } else {
+    await criarAdmin(ADMIN_NOME, ADMIN_EMAIL, ADMIN_SENHA);
   }
 
+  await criarServicosExemplo();
+}
+
+async function criarAdmin(ADMIN_NOME, ADMIN_EMAIL, ADMIN_SENHA) {
   const admin = await prisma.user.upsert({
     where: { email: ADMIN_EMAIL.toLowerCase() },
     update: {},
@@ -27,6 +36,11 @@ async function main() {
     }
   });
   console.log(`Admin: ${admin.email}`);
+}
+
+async function criarServicosExemplo() {
+  // Só preenche um catálogo vazio, para não recriar serviços que o admin editou ou removeu
+  if ((await prisma.servico.count()) > 0) return;
 
   // Catálogo inicial (baseado no diagrama de objetos)
   const servicos = [
@@ -48,11 +62,8 @@ async function main() {
     }
   ];
 
-  for (const servico of servicos) {
-    const existe = await prisma.servico.findFirst({ where: { nome: servico.nome } });
-    if (!existe) await prisma.servico.create({ data: servico });
-  }
-  console.log(`Serviços: ${await prisma.servico.count()}`);
+  await prisma.servico.createMany({ data: servicos });
+  console.log(`Serviços de exemplo criados: ${servicos.length}`);
 }
 
 main()
