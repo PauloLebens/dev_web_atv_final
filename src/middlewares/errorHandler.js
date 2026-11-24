@@ -23,6 +23,10 @@ function errorHandler(err, req, res, next) {
     if (err.code === 'P2025') {
       return res.status(404).json({ error: 'Registro não encontrado.' });
     }
+    if (err.code === 'P2034') {
+      // Duas transações disputaram o mesmo recurso (ex: o último horário livre)
+      return res.status(409).json({ error: 'Conflito com outra operação simultânea. Tente novamente.' });
+    }
     if (err.code === 'P2003') {
       return res.status(400).json({ error: 'Referência inválida (registro relacionado não existe).' });
     }

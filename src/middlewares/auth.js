@@ -23,6 +23,16 @@ function autenticar(req, res, next) {
 }
 
 /**
+ * Para rotas públicas que mudam o comportamento quando há alguém logado
+ * (ex: catálogo mostra serviços inativos só para o admin).
+ * Sem token: segue como visitante. Token inválido: 401.
+ */
+function autenticarOpcional(req, res, next) {
+  if (!req.headers.authorization) return next();
+  return autenticar(req, res, next);
+}
+
+/**
  * Restringe a rota aos perfis informados. Usar depois de autenticar.
  *   router.post('/', autenticar, autorizar('ADMIN'), controller.criar)
  */
@@ -35,4 +45,4 @@ function autorizar(...perfis) {
   };
 }
 
-module.exports = { autenticar, autorizar };
+module.exports = { autenticar, autenticarOpcional, autorizar };
