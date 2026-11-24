@@ -1,24 +1,22 @@
 const express = require('express');
 const prisma = require('../config/prisma');
+const { autenticar, autorizar } = require('../middlewares/auth');
 
 const router = express.Router();
 
 /**
- * Retorna todos os clientes cadastrados com usuario e veiculos.
+ * GET /api/clientes (ADMIN, FUNCIONARIO)
+ * Lista os clientes com dados públicos do usuário (sem senhaHash) e veículos.
  */
-router.get('/', async (req, res) => {
-  try {
-    const clientes = await prisma.cliente.findMany({
-      include: {
-        user: true,
-        veiculos: true
-      }
-    });
-    return res.json(clientes);
-  } catch (error) {
-    return res.status(500).json({ error: error.message });
-  }
+router.get('/', autenticar, autorizar('ADMIN', 'FUNCIONARIO'), async (req, res) => {
+  const clientes = await prisma.cliente.findMany({
+    include: {
+      user: { select: { id: true, nome: true, email: true } },
+      veiculos: true
+    },
+    orderBy: { id: 'asc' }
+  });
+  return res.json(clientes);
 });
 
 module.exports = router;
-

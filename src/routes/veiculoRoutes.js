@@ -1,19 +1,16 @@
 const express = require('express');
 const prisma = require('../config/prisma');
+const { autenticar, autorizar } = require('../middlewares/auth');
 
 const router = express.Router();
 
 /**
- * Retorna todos os veiculos cadastrados.
+ * GET /api/veiculos (ADMIN, FUNCIONARIO)
+ * TODO (passo 3): CRUD completo, com o cliente vendo só os próprios veículos.
  */
-router.get('/', async (req, res) => {
-  try {
-    const veiculos = await prisma.veiculo.findMany();
-    return res.json(veiculos);
-  } catch (error) {
-    return res.status(500).json({ error: error.message });
-  }
+router.get('/', autenticar, autorizar('ADMIN', 'FUNCIONARIO'), async (req, res) => {
+  const veiculos = await prisma.veiculo.findMany({ orderBy: { placa: 'asc' } });
+  return res.json(veiculos);
 });
 
 module.exports = router;
-

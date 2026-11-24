@@ -1,46 +1,24 @@
 const express = require('express');
 const prisma = require('../config/prisma');
+const { autenticar, autorizar } = require('../middlewares/auth');
 
 const router = express.Router();
 
 /**
- * Retorna todos os agendamentos cadastrados com seus relacionamentos.
+ * GET /api/agendamentos (ADMIN, FUNCIONARIO)
+ * TODO (passo 3): criação com carrinho de serviços, bloqueio de horário (FR02),
+ * alocação automática de funcionário (FR04) e atualização de status (FR06).
  */
-router.get('/', async (req, res) => {
-  try {
-    const agendamentos = await prisma.agendamento.findMany({
-      include: {
-        veiculo: true,
-        servicos: true,
-        pagamento: true
-      }
-    });
-    return res.json(agendamentos);
-  } catch (error) {
-    return res.status(500).json({ error: error.message });
-  }
-});
-
-/**
- * Cria um novo agendamento no sistema.
- */
-router.post('/', async (req, res) => {
-  try {
-    const { datahora, status, observacoes, veiculoPlaca, funcionarioId } = req.body;
-    const novoAgendamento = await prisma.agendamento.create({
-      data: {
-        datahora: new Date(datahora),
-        status,
-        observacoes,
-        veiculoPlaca,
-        funcionarioId
-      }
-    });
-    return res.status(201).json(novoAgendamento);
-  } catch (error) {
-    return res.status(500).json({ error: error.message });
-  }
+router.get('/', autenticar, autorizar('ADMIN', 'FUNCIONARIO'), async (req, res) => {
+  const agendamentos = await prisma.agendamento.findMany({
+    include: {
+      veiculo: true,
+      itens: { include: { servico: true } },
+      pagamento: true
+    },
+    orderBy: { datahora: 'asc' }
+  });
+  return res.json(agendamentos);
 });
 
 module.exports = router;
-
