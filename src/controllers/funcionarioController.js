@@ -1,7 +1,8 @@
 const bcrypt = require('bcrypt');
 const prisma = require('../config/prisma');
 const { BCRYPT_ROUNDS } = require('../config/auth');
-const { exigirCampos, validarEmail, validarSenha } = require('../utils/validacao');
+const HttpError = require('../utils/HttpError');
+const { exigirCampos, validarEmail, validarSenha, parseId } = require('../utils/validacao');
 
 const funcionarioPublico = {
   id: true,
@@ -48,4 +49,26 @@ async function listar(req, res) {
   return res.json(funcionarios);
 }
 
-module.exports = { criar, listar };
+/**
+ * PATCH /api/funcionarios/:id (ADMIN) — altera cargo e/ou ativo.
+ * Funcionário inativo deixa de receber novos agendamentos (FR04).
+ */
+async function atualizar(req, res) {
+  const { cargo, ativo } = req.body ?? {};
+  const dados = {};
+  if (cargo !== undefined) {
+    if (!String(cargo).trim()) throw new HttpError(400, 'cargo não pode ser vazio.');
+    dados.cargo = String(cargo).trim();
+  }
+  if (ativo !== undefined) dados.ativo = Boolean(ativo);
+  if (Object.keys(dados).length === 0) throw new HttpError(400, 'Nenhum campo para atualizar.');
+
+  const funcionario = await prisma.funcionario.update({
+    where: { id: parseId(req.params.id) },
+    data: dados,
+    select: funcionarioPublico
+  });
+  return res.json(funcionario);
+}
+
+module.exports = { criar, listar, atualizar };
