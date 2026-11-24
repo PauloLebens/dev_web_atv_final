@@ -1,0 +1,214 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ==========================================
+// ENUMS (valores fixos, validados pelo banco)
+// ==========================================
+
+// Perfis de acesso (RNF03 - controle de acesso baseado em perfis)
+enum Perfil {
+  ADMIN
+  FUNCIONARIO
+  CLIENTE
+}
+
+enum TipoVeiculo {
+  CARRO
+  MOTO
+  CAMINHAO
+}
+
+// Rastreamento do veículo (FR05 / HU06)
+enum StatusAgendamento {
+  AGENDADO // Cliente reservou o horário, veículo ainda não chegou
+  VEICULO_RECEBIDO // "veículo recebido"
+  EM_AGUARDO // "em aguardo"
+  EM_SERVICO // "em serviço"
+  FINALIZADO // "finalizado/aguardando retirada"
+  CANCELADO
+}
+
+// Estratégias de pagamento (padrão Strategy - Sprint IV)
+enum MetodoPagamento {
+  PIX
+  CARTAO_CREDITO
+  CARTAO_DEBITO
+}
+
+enum StatusPagamento {
+  PENDENTE // Ex: PIX gerado, aguardando compensação
+  PAGO
+  FALHOU // Exceção 4a do caso de uso "Realizar Pagamento"
+  CANCELADO
+}
+
+// ==========================================
+// MÓDULO DE USUÁRIOS
+// ==========================================
+
+model User {
+  id        Int     @id @default(autoincrement())
+  nome      String
+  email     String  @unique
+  senhaHash String // Hash bcrypt, nunca a senha pura
+  perfil    Perfil  @default(CLIENTE)
+
+  // Dados extras conforme o perfil
+  cliente     Cliente?
+  funcionario Funcionario?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Cliente {
+  id       Int       @id @default(autoincrement())
+  telefone String
+  userId   Int       @unique
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  veiculos Veiculo[]
+
+  @@map("clientes")
+}
+
+model Funcionario {
+  id           Int           @id @default(autoincrement())
+  cargo        String
+  ativo        Boolean       @default(true) // Só funcionários ativos recebem agendamentos (FR04)
+  userId       Int           @unique
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agendamentos Agendamento[]
+
+  @@map("funcionarios")
+}
+
+// ==========================================
+// MÓDULO DE VEÍCULOS
+// ==========================================
+
+model Veiculo {
+  placa        String        @id
+  modelo       String
+  marca        String
+  ano          Int
+  tipo         TipoVeiculo   @default(CARRO)
+  clienteId    Int
+  cliente      Cliente       @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  agendamentos Agendamento[]
+
+  // Campos específicos de cada tipo (ficam nulos quando não se aplicam)
+  numeroPortas    Int? // CARRO
+  tipoCombustivel String? // CARRO
+  capacidadeCarga Float? // CAMINHAO (toneladas)
+  numeroEixos     Int? // CAMINHAO
+  cilindradas     Int? // MOTO
+
+  @@index([clienteId])
+  @@map("veiculos")
+}
+
+// ==========================================
+// MÓDULO DE SERVIÇOS E AGENDAMENTOS
+// ==========================================
+
+model Servico {
+  id             Int                  @id @default(autoincrement())
+  nome           String
+  descricao      String // Descrição detalhada (HU03)
+  imagemUrl      String? // Imagem ilustrativa (HU03)
+  preco          Decimal              @db.Decimal(10, 2)
+  duracaoMinutos Int                  @default(30) // Tempo estimado (HU01)
+  ativo          Boolean              @default(true) // Desativar em vez de apagar (preserva histórico)
+  itens          AgendamentoServico[]
+
+  @@map("servicos")
+}
+
+// Dias de funcionamento e seus horários (FR02 - os já agendados são descontados na consulta)
+model Agenda {
+  id                  Int      @id @default(autoincrement())
+  data                DateTime @unique @db.Date
+  horariosDisponiveis String[] // Ex: ["08:00", "08:30", "09:00"]
+
+  @@map("agendas")
+}
+
+model Agendamento {
+  id          Int               @id @default(autoincrement())
+  datahora    DateTime
+  status      StatusAgendamento @default(AGENDADO)
+  observacoes String?
+
+  // Totais calculados no momento do agendamento (calcularValorTotal / calcularTempoTotal)
+  valorTotal          Decimal @db.Decimal(10, 2)
+  duracaoTotalMinutos Int
+
+  veiculoPlaca String
+  veiculo      Veiculo @relation(fields: [veiculoPlaca], references: [placa])
+
+  funcionarioId Int?
+  funcionario   Funcionario? @relation(fields: [funcionarioId], references: [id])
+
+  itens     AgendamentoServico[]
+  pagamento Pagamento?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([veiculoPlaca])
+  @@index([funcionarioId])
+  @@index([datahora])
+  @@map("agendamentos")
+}
+
+// Serviços de um agendamento ("carrinho"), com o preço congelado no momento da contratação.
+// Assim, se o admin mudar o preço depois, extratos e relatórios antigos não mudam.
+model AgendamentoServico {
+  agendamentoId Int
+  agendamento   Agendamento @relation(fields: [agendamentoId], references: [id], onDelete: Cascade)
+  servicoId     Int
+  servico       Servico     @relation(fields: [servicoId], references: [id])
+  precoCobrado  Decimal     @db.Decimal(10, 2)
+
+  @@id([agendamentoId, servicoId])
+  @@map("agendamento_servicos")
+}
+
+// ==========================================
+// MÓDULO DE PAGAMENTOS E RELATÓRIOS
+// ==========================================
+
+model Pagamento {
+  id         Int             @id @default(autoincrement())
+  valor      Decimal         @db.Decimal(10, 2)
+  metodo     MetodoPagamento // Qual estratégia foi usada (PagamentoPix / PagamentoCartao)
+  status     StatusPagamento @default(PENDENTE)
+  data       DateTime        @default(now())
+  transacaoId String? // ID retornado pelo gateway/operadora
+  codigoPix   String? // "Copia e Cola" gerado para pagamentos PIX
+
+  agendamentoId Int         @unique
+  agendamento   Agendamento @relation(fields: [agendamentoId], references: [id], onDelete: Cascade)
+
+  @@map("pagamentos")
+}
+
+// Relatório salvo/exportado pelo admin (os números são calculados a partir dos pagamentos)
+model Relatorio {
+  id                 Int      @id @default(autoincrement())
+  dataInicio         DateTime
+  dataFim            DateTime
+  totalFaturamento   Decimal  @db.Decimal(12, 2)
+  quantidadeServicos Int
+  createdAt          DateTime @default(now())
+
+  @@map("relatorios")
+}

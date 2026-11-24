@@ -15,4 +15,4 @@ COPY . .
 EXPOSE 3000
 
 # Aplica as migrations pendentes e sobe o servidor
-CMD ["sh", "-c", "npx prisma migrate deploy && node server.js"]
+CMD ["sh", "-c", "npx prisma migrate deploy && npx prisma generate && node server.js"]

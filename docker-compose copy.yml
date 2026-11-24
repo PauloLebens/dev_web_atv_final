@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  # Serviço do Backend (Node.js / Express)
+  backend:
+    build: ./backend # Ajuste para o caminho da pasta do seu backend
+    container_name: lava_jato_backend
+    ports:
+      - "4000:4000" # Porta onde o Express vai rodar externamente
+    environment:
+      - PORT=4000
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/lavajato_db?schema=public
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=lavajato_db
+    depends_on:
+      - postgres
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+
+  # Serviço do Frontend (React)
+  frontend:
+    build: ./frontend # Ajuste para o caminho da pasta do seu frontend
+    container_name: lava_jato_frontend
+    ports:
+      - "3000:3000" # Porta onde o React vai rodar no navegador
+    environment:
+      - WATCHPOLL=true # Ajuda o hot-reload do React a funcionar dentro do Docker
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+
+  # Serviço do Banco de Dados (PostgreSQL)
+  postgres:
+    image: postgres:16-alpine # Versão estável e leve do Postgres
+    container_name: lava_jato_postgres
+    ports:
+      - "5432:5432" # Porta padrão exposta para sua máquina (você pode usar 2222 se preferir)
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: lavajato_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
+    name: lava_jato_postgres_data
