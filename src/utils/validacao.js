@@ -26,4 +26,46 @@ function validarSenha(senha) {
   }
 }
 
-module.exports = { exigirCampos, validarEmail, validarSenha };
+/** Converte para inteiro positivo ou lança 400. Uso: parseId(req.params.id) */
+function parseId(valor, nome = 'id') {
+  const n = Number(valor);
+  if (!Number.isInteger(n) || n <= 0) {
+    throw new HttpError(400, `${nome} inválido.`);
+  }
+  return n;
+}
+
+/** Número (aceita string "12.50") maior ou igual ao mínimo, ou lança 400. */
+function parseNumero(valor, nome, { min = 0, inteiro = false } = {}) {
+  const n = Number(valor);
+  if (valor === '' || valor === null || Number.isNaN(n) || n < min || (inteiro && !Number.isInteger(n))) {
+    throw new HttpError(400, `${nome} inválido.`);
+  }
+  return n;
+}
+
+/** Data no formato YYYY-MM-DD */
+function validarData(data, nome = 'data') {
+  if (typeof data !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(data) || Number.isNaN(Date.parse(`${data}T00:00:00Z`))) {
+    throw new HttpError(400, `${nome} deve estar no formato AAAA-MM-DD.`);
+  }
+  return data;
+}
+
+/** Horário no formato HH:MM (00:00 a 23:59) */
+function validarHorario(horario, nome = 'horario') {
+  if (typeof horario !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d$/.test(horario)) {
+    throw new HttpError(400, `${nome} deve estar no formato HH:MM.`);
+  }
+  return horario;
+}
+
+module.exports = {
+  exigirCampos,
+  validarEmail,
+  validarSenha,
+  parseId,
+  parseNumero,
+  validarData,
+  validarHorario
+};
